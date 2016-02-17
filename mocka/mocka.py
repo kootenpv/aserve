@@ -44,7 +44,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Mock an API with mocka.')
     parser.add_argument('--debug', '-d', action="store_true",
                         help='Uses "pdb" to drop you into the request, BEFORE replying')
-    parser.add_argument('--port', '-p', type=int, default=8080,
+    parser.add_argument('--port', '-p', type=int, default=21487,
                         help='Port where to host')
     parser.add_argument('--verbose', '-v', action="store_true",
                         help='Talks.... a lot.')
