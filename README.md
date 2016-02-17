@@ -38,6 +38,27 @@ optional arguments:
   --sleep SLEEP, -s SLEEP      seconds to wait before delivering
 ```
 
+### Default routes
+
+```
+/get_echo
+/get_file
+/get_json
+/get_text
+/head_echo
+/head_file
+/head_json
+/head_text
+/options_echo
+/options_file
+/options_json
+/options_text
+/post_echo
+/post_file
+/post_json
+/post_text
+```
+
 ### Looking for direction
 
 I will most likely completely rewrite this library at some point, just trying to get some ideas for now.

@@ -61,7 +61,7 @@ def parse_args():
         if args.sleep:
             print("Sleeping between requests: {}s.".format(args.sleep))
         if args.file is not None:
-            raise NotImplementedError("Planned to come soon. Check back later."):
+            raise NotImplementedError("Planned to come soon. Check back later.")
             print("serving file at /file")
     return args
 
