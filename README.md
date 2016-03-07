@@ -2,10 +2,10 @@
 
 The goal of mocka is to make it easy to "mock an API". If you want to
 serve some text, json, or echo a request: mocka enables quick
-testing.
+testing... just run `mocka`.
 
 - Hackathon: give your buddy an endpoint with a statically served JSON
-- Server-to-server: viewing how a request looks like
+- Server-to-server: viewing how a request looks like with headers etc
 - Send your custom response: use `pdb` to drop in a request and return a response manually
 
 ### Features
