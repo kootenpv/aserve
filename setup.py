@@ -1,11 +1,10 @@
 from setuptools import find_packages
 from setuptools import setup
 
-# MAJOR_VERSION = '0'
-# MINOR_VERSION = '4'
-# MICRO_VERSION = '4'
-# VERSION = "{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION)
-VERSION = '0.0'
+MAJOR_VERSION = '0'
+MINOR_VERSION = '0'
+MICRO_VERSION = '6'
+VERSION = "{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION)
 
 setup(name='mocka',
       version=VERSION,
