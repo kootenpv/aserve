@@ -143,6 +143,7 @@ def main():
             cd = os.path.dirname(args.python_file)
             print("Could not directly load module, changing directory to:\n{}".format(cd))
             os.chdir(cd)
+            py_mod = imp.load_source(mod_name, args.python_file)
         for fn_name, fn in getmembers(py_mod, isfunction):
             if fn.__module__ == py_mod.__name__:
                 route_fn = route_wrapper(fn_to_route(fn), args.debug, args.verbose, args.sleep)
