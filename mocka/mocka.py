@@ -1,10 +1,12 @@
-from aiohttp import web
-import json
-
 import asyncio
-import sys
+import imp
+from inspect import getmembers, isfunction
+import json
 import os
+import sys
 from stat import S_ISFIFO
+
+from aiohttp import web
 
 
 def ensure_bytes(x):
@@ -23,18 +25,21 @@ def echo(request):
 def route_wrapper(reply, use_pdb=False, printing=False, sleepfor=0):
     """ Wrapper to easily create routes. """
     async def route_function(request):
+        status_code = 200
+        reason = None
         if sleepfor:
             await asyncio.sleep(sleepfor)
         if use_pdb:
             import pdb
             pdb.set_trace()
         if hasattr(reply, '__call__'):
-            result = ensure_bytes(reply(request))
+            result, status_code, reason = await reply(request)
+            result = ensure_bytes(result)
         else:
             result = ensure_bytes(reply)
         if printing:
             print("result", result)
-        return web.Response(body=result)
+        return web.Response(body=result, status=status_code, reason=reason)
     return route_function
 
 
@@ -42,6 +47,7 @@ def parse_args():
     import argparse
 
     parser = argparse.ArgumentParser(description='Mock an API with mocka.')
+    parser.add_argument("python_file", nargs="?")
     parser.add_argument('--debug', '-d', action="store_true",
                         help='Uses "pdb" to drop you into the request, BEFORE replying')
     parser.add_argument('--port', '-p', type=int, default=21487,
@@ -64,6 +70,35 @@ def parse_args():
             raise NotImplementedError("Planned to come soon. Check back later.")
             print("serving file at /file")
     return args
+
+
+def fn_to_route(fn):
+
+    async def routed_function(request):
+        response = None
+        args = None
+        # return fn(request)
+        if request.method == "POST":
+            try:
+                post_data = await request.json()
+            except json.decoder.JSONDecodeError:
+                post_data = await request.post()
+
+            args = post_data
+        else:
+            # just to make it asyncable, but i dont know what i should have here
+            _ = await request.text()
+            args = request.GET
+        # response
+        status_code = 200
+        reason = None
+        try:
+            response = fn(**args)
+        except Exception as e:
+            response, status_code, reason = "error", 500, e
+        return response, status_code, reason
+
+    return routed_function
 
 
 def main():
@@ -99,8 +134,18 @@ def main():
             route = route_wrapper(RESPONSES[d], args.debug, args.verbose, args.sleep)
             ROUTER[(m.lower(), d)] = route
 
+    if args.python_file is not None:
+        args.python_file = os.path.abspath(args.python_file)
+        mod_name, _ = os.path.splitext(os.path.split(args.python_file)[-1])
+        py_mod = imp.load_source(mod_name, args.python_file)
+        for fn_name, fn in getmembers(py_mod, isfunction):
+            if fn.__module__ == py_mod.__name__:
+                route_fn = route_wrapper(fn_to_route(fn), args.debug, args.verbose, args.sleep)
+                app.router.add_route('POST', '/{}/{}'.format(py_mod.__name__, fn_name), route_fn)
+                app.router.add_route('GET', '/{}/{}'.format(py_mod.__name__, fn_name), route_fn)
+
     for r, route_fn in ROUTER.items():
-        app.router.add_route(r[0], '/{}_{}'.format(*r), route_fn)
+        app.router.add_route(r[0], '/' + '_'.join(r), route_fn)
 
     for m in METHODS:
         route_fn = ensure_bytes(json.dumps(sorted(['/' + '_'.join(x) for x in ROUTER])))
