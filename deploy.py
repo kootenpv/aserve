@@ -20,10 +20,10 @@ version = '{}.{}.{}'.format(major, minor, micro)
 with open('setup.py', 'w') as f:
     f.write(setup)
 
-with open('mocka/__init__.py') as f:
+with open('aserve/__init__.py') as f:
     init = f.read()
 
-with open('mocka/__init__.py', 'w') as f:
+with open('aserve/__init__.py', 'w') as f:
     f.write(
         re.sub('__version__ = "[0-9.]+"',
                '__version__ = "{}"'.format(version), init))
@@ -32,4 +32,4 @@ print(sh.python3('setup.py', ['sdist', 'bdist_wheel', 'upload']))
 
 sh.cd('../')
 
-sh.pip3('install', ['-U', 'mocka'])
+sh.pip3('install', ['-U', 'aserve'])

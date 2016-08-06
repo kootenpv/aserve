@@ -3,13 +3,13 @@ from setuptools import setup
 
 MAJOR_VERSION = '0'
 MINOR_VERSION = '0'
-MICRO_VERSION = '7'
+MICRO_VERSION = '8'
 VERSION = "{}.{}.{}".format(MAJOR_VERSION, MINOR_VERSION, MICRO_VERSION)
 
-setup(name='mocka',
+setup(name='aserve',
       version=VERSION,
-      description="Mocka mocks APIs",
-      url='https://github.com/kootenpv/mocka',
+      description="Asynchronously serve APIs",
+      url='https://github.com/kootenpv/aserve',
       author='Pascal van Kooten',
       author_email='kootenpv@gmail.com',
       license='MIT',
@@ -18,7 +18,7 @@ setup(name='mocka',
           'aiohttp',
       ],
       entry_points={
-          'console_scripts': ['mocka = mocka.mocka:main']
+          'console_scripts': ['aserve = aserve.aserve:main']
       },
 
       classifiers=[
@@ -29,7 +29,6 @@ setup(name='mocka',
           'Operating System :: MacOS :: MacOS X',
           'Operating System :: Unix',
           'Operating System :: POSIX',
-          'Programming Language :: Python',
           'Programming Language :: Python :: 3.5',
           'Topic :: Software Development',
           'Topic :: Software Development :: Build Tools',

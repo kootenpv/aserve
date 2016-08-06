@@ -1,12 +1,35 @@
-import asyncio
-import imp
-from inspect import getmembers, isfunction
 import json
 import os
 import sys
+import asyncio
+import imp
+from aiohttp import web
+from inspect import getmembers, isfunction, iscoroutinefunction
 from stat import S_ISFIFO
 
-from aiohttp import web
+
+def load_module(absolute_path):
+    import importlib.util
+    module_name, ext = os.path.splitext(os.path.split(absolute_path)[-1])
+    module_root = os.path.dirname(absolute_path)
+    if not ext.endswith(".py"):
+        print("I doubt I can load a file not ending with .py: " + absolute_path)
+        print("Still trying to load.")
+    os.chdir(module_root)
+    try:
+        py_mod = imp.load_source(module_name, absolute_path)
+    except ImportError as e:
+        if not e.msg.startswith("No module named"):
+            raise e
+        missing_module = e.name
+        if missing_module + ext not in os.listdir(module_root):
+            raise ImportError("Could not find '{}' in '{}'".format(missing_module, module_root))
+        print("Could not directly load module, including dir: {}".format(module_root))
+        sys.path.append(module_root)
+        spec = importlib.util.spec_from_file_location(module_name, absolute_path)
+        py_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(py_mod)
+    return py_mod
 
 
 def ensure_bytes(x):
@@ -33,7 +56,10 @@ def route_wrapper(reply, use_pdb=False, printing=False, sleepfor=0):
             import pdb
             pdb.set_trace()
         if hasattr(reply, '__call__'):
-            result, status_code, reason = await reply(request)
+            if iscoroutinefunction(reply):
+                result, status_code, reason = await reply(request)
+            else:
+                result, status_code, reason = reply(request)
             result = ensure_bytes(result)
         else:
             result = ensure_bytes(reply)
@@ -46,7 +72,7 @@ def route_wrapper(reply, use_pdb=False, printing=False, sleepfor=0):
 def parse_args():
     import argparse
 
-    parser = argparse.ArgumentParser(description='Mock an API with mocka.')
+    parser = argparse.ArgumentParser(description='Asynchronously Serve an API with aserve.')
     parser.add_argument("python_file", nargs="?")
     parser.add_argument('--debug', '-d', action="store_true",
                         help='Uses "pdb" to drop you into the request, BEFORE replying')
@@ -93,7 +119,10 @@ def fn_to_route(fn):
         status_code = 200
         reason = None
         try:
-            response = fn(**args)
+            if iscoroutinefunction(fn):
+                response = await fn(**args)
+            else:
+                response = fn(**args)
         except Exception as e:
             response, status_code, reason = "error", 500, e
         return response, status_code, reason
@@ -102,7 +131,7 @@ def fn_to_route(fn):
 
 
 def main():
-    """ This is the function that is run from commandline with `mocka` """
+    """ This is the function that is run from commandline with `aserve` """
     app = web.Application()
 
     args = parse_args()
@@ -110,40 +139,33 @@ def main():
     METHODS = ["GET", "POST", "OPTIONS", "HEAD"]
     DTYPES = ["text", "json", "echo", 'file']
 
-    RESPONSES = {'text': "Hello, world!",
-                 'json': json.dumps({"hello": "world!"}),
-                 'echo': echo,
-                 'file': json.dumps}
+    RESPONSE_HANDLERS = {'text': "Hello, world!",
+                         'json': json.dumps({"hello": "world!"}),
+                         'echo': echo,
+                         'file': json.dumps}
 
     if args.file:
         with open(args.file) as f:
-            RESPONSES['file'] = json.dumps(f.read())
+            RESPONSE_HANDLERS['file'] = json.dumps(f.read())
 
     piped_content = sys.stdin.read() if S_ISFIFO(os.fstat(0).st_mode) else ''
 
     if piped_content:
         try:
-            RESPONSES['json'] = json.dumps(json.loads(piped_content))
+            RESPONSE_HANDLERS['json'] = json.dumps(json.loads(piped_content))
         except json.decoder.JSONDecodeError:
             print("info: cannot serve '{}' as JSON".format(piped_content))
-        RESPONSES['text'] = piped_content
+        RESPONSE_HANDLERS['text'] = piped_content
 
     ROUTER = {}
     for m in METHODS:
         for d in DTYPES:
-            route = route_wrapper(RESPONSES[d], args.debug, args.verbose, args.sleep)
+            route = route_wrapper(RESPONSE_HANDLERS[d], args.debug, args.verbose, args.sleep)
             ROUTER[(m.lower(), d)] = route
 
     if args.python_file is not None:
         args.python_file = os.path.abspath(args.python_file)
-        mod_name, _ = os.path.splitext(os.path.split(args.python_file)[-1])
-        try:
-            py_mod = imp.load_source(mod_name, args.python_file)
-        except ImportError:
-            cd = os.path.dirname(args.python_file)
-            print("Could not directly load module, changing directory to:\n{}".format(cd))
-            os.chdir(cd)
-            py_mod = imp.load_source(mod_name, args.python_file)
+        py_mod = load_module(args.python_file)
         for fn_name, fn in getmembers(py_mod, isfunction):
             if fn.__module__ == py_mod.__name__:
                 route_fn = route_wrapper(fn_to_route(fn), args.debug, args.verbose, args.sleep)
