@@ -69,7 +69,7 @@ def route_wrapper(reply, use_pdb=False, printing=False, sleepfor=0):
     return route_function
 
 
-def parse_args():
+def parse_args(args=None):
     import argparse
 
     parser = argparse.ArgumentParser(description='Asynchronously Serve an API with aserve.')
@@ -84,7 +84,7 @@ def parse_args():
                         help='Loads file (COMING VERY SOON)')
     parser.add_argument('--sleep', '-s', type=int, default=0,
                         help='seconds to wait before delivering')
-    args = parser.parse_args()
+    args = parser.parse_args(args) if args else parser.parse_args()
 
     args.file = args.file[0] if args.file else None
     if args.verbose:
@@ -134,8 +134,7 @@ def main(args=None):
     """ This is the function that is run from commandline with `aserve` """
     app = web.Application()
 
-    if args is None:
-        args = parse_args()
+    args = parse_args(args)
 
     METHODS = ["GET", "POST", "OPTIONS", "HEAD"]
     DTYPES = ["text", "json", "echo", 'file']
@@ -183,5 +182,4 @@ def main(args=None):
     web.run_app(app, port=args.port)
 
 if __name__ == "__main__":
-    args = parse_args()
-    main(args)
+    main()
