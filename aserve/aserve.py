@@ -130,11 +130,12 @@ def fn_to_route(fn):
     return routed_function
 
 
-def main():
+def main(args=None):
     """ This is the function that is run from commandline with `aserve` """
     app = web.Application()
 
-    args = parse_args()
+    if args is None:
+        args = parse_args()
 
     METHODS = ["GET", "POST", "OPTIONS", "HEAD"]
     DTYPES = ["text", "json", "echo", 'file']
@@ -182,4 +183,5 @@ def main():
     web.run_app(app, port=args.port)
 
 if __name__ == "__main__":
-    main()
+    args = parse_args()
+    main(args)
